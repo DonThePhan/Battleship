@@ -20,6 +20,37 @@ header {
   }
 }
 
+main {
+  display: flex;
+  padding: 50px;
+  .playing-pieces-container {
+    display: flex;
+    flex-direction: column;
+    margin-left: 50px;
+    .playing-pieces {
+      display: flex;
+      flex-direction: column;
+      img {
+        height: $cell-dim;
+      }
+
+      .carrier {
+        width: 5*$cell-dim;
+      }
+      .battleship {
+        width: 4*$cell-dim;
+      }
+      .cruiser,
+      .submarine {
+        width: 3*$cell-dim;
+      }
+      .destroyer {
+        width: 2*$cell-dim;
+      }
+    }
+  }
+}
+
 .grid {
   display: flex;
   flex-direction: column;
@@ -36,6 +67,8 @@ header {
   height: $cell-dim;
   line-height: $cell-dim;
   text-align: center;
+  background-image: url('/images/water-slow.gif');
+  background-size: 100% 100%;
 }
 
 // ALL SHIPS
@@ -50,7 +83,8 @@ header {
 .destroyer-h,
 .destroyer-v {
   position: absolute;
-  z-index: -1;
+  pointer-events: none;
+  // z-index: -1;
   height: $cell-dim;
 }
 
@@ -71,4 +105,25 @@ header {
 }
 .battleship-v {
   transform: rotate(90deg) translate(-.5*$cell-dim, 2*$cell-dim);
+}
+
+.cruiser-h,
+.cruiser-v,
+.submarine-h,
+.submarine-v {
+  width: 3*$cell-dim;
+  transform: translateX(-1.5*$cell-dim);
+}
+.cruiser-v,
+.submarine-v {
+  transform: translateX(-1.5*$cell-dim) rotate(90deg);
+}
+
+.destroyer-h,
+.destroyer-v {
+  width: 2*$cell-dim;
+  transform: translateX(-1.5*$cell-dim);
+}
+.destroyer-v {
+  transform: rotate(90deg) translate(-.5*$cell-dim, $cell-dim);
 }

@@ -3,14 +3,16 @@ const COLS = 10;
 let curRow;
 let curCol;
 
-let carrier = { name: 'carrier', length: 5, text: 'CA', class: { ver: 'carrier-v', hor: 'carrier-h' } };
-let battleship = { name: 'battleship', length: 4, text: 'B', class: { ver: 'battleship-v', hor: 'battleship-h' } };
-let cruiser = { name: 'cruiser', length: 3, text: 'CR', class: { ver: 'cruiser-v', hor: 'cruiser-h' } };
-let submarine = { name: 'submarine', length: 3, text: 'S', class: { ver: 'submarine-v', hor: 'submarine-h' } };
-let destroyer = { name: 'destroyer', length: 2, text: 'D', class: { ver: 'destroyer-v', hor: 'destroyer-h' } };
+const ships = {
+  carrier: { name: 'carrier', length: 5, text: 'CA', class: { ver: 'carrier-v', hor: 'carrier-h' } },
+  battleship: { name: 'battleship', length: 4, text: 'B', class: { ver: 'battleship-v', hor: 'battleship-h' } },
+  cruiser: { name: 'cruiser', length: 3, text: 'CR', class: { ver: 'cruiser-v', hor: 'cruiser-h' } },
+  submarine: { name: 'submarine', length: 3, text: 'S', class: { ver: 'submarine-v', hor: 'submarine-h' } },
+  destroyer: { name: 'destroyer', length: 2, text: 'D', class: { ver: 'destroyer-v', hor: 'destroyer-h' } }
+};
 
-let selectedShip = battleship;
-let verOrHor = 'ver';
+let selectedShip = ships.carrier;
+let verOrHor = 'hor';
 
 /** HELPER FUNCTIONS */
 
@@ -33,8 +35,10 @@ for (let y = 0; y < ROWS; y++) {
 }
 function createCell() {
   return {
-    ship: '',
-    text: ''
+    ship: undefined,
+    text: '',
+    verOrHor: undefined,
+    image: false
   };
 }
 
@@ -45,7 +49,7 @@ function assignShipToText() {
   });
 }
 
-function getCellFromOrientation(y, x, start, cellNum) {
+function getCell(y, x, start = 0, cellNum = 0) {
   if (verOrHor === 'ver') {
     return grid[start + y + cellNum][x];
   } else {
@@ -53,13 +57,13 @@ function getCellFromOrientation(y, x, start, cellNum) {
   }
 }
 
-function getDomCellFromOrientation(y, x, start, cellNum) {
+function getDomCell(y, x, start = 0, cellNum = 0) {
   if (verOrHor === 'ver') {
-    console.log('ver', y + start + cellNum, x);
-    return domGrid.children().eq(y + start + cellNum).children().eq(x);
+    // console.log('ver', y + start + cellNum, x);
+    return $domGrid.children().eq(y + start + cellNum).children().eq(x);
   } else {
-    console.log('hor', y, x + start + cellNum);
-    return domGrid.children().eq(y).children().eq(x + start + cellNum);
+    // console.log('hor', y, x + start + cellNum);
+    return $domGrid.children().eq(y).children().eq(x + start + cellNum);
   }
 }
 
@@ -67,18 +71,27 @@ function dropShipIntoGrid(y, x) {
   removeInstancesOfShip();
   let start = -Math.floor(selectedShip.length / 2);
   for (let cellNum = 0; cellNum < selectedShip.length; cellNum++) {
-    let cell = getCellFromOrientation(y, x, start, cellNum);
-    cell.ship = selectedShip.name;
+    let cell = getCell(y, x, start, cellNum);
+    cell.ship = selectedShip;
+    cell.verOrHor = verOrHor;
+
+    if (start + cellNum === 0) {
+      cell.image = true;
+    }
   }
 
-  assignShipToText();
-  gridToDom();
+  refreshDomCellImages();
 }
 
 function removeInstancesOfShip() {
   loopYandX((y, x) => {
     let gridCell = grid[y][x];
-    gridCell.ship === selectedShip.name ? (gridCell.ship = '') : null;
+    if (gridCell.ship) {
+      if (gridCell.ship.name === selectedShip.name) {
+        gridCell.ship = undefined;
+        gridCell.image = false;
+      }
+    }
   });
 }
 
@@ -87,26 +100,33 @@ function removeInstancesOfShip() {
 function gridToDom() {
   loopYandX((y, x) => {
     let gridCell = grid[y][x];
-    let gridDomCell = domGrid.children().eq(y).children().eq(x);
+    let gridDomCell = $domGrid.children().eq(y).children().eq(x);
+    gridDomCell.empty();
 
-    gridDomCell.text(gridCell.ship);
+    gridDomCell.append(createShipImgElement(gridCell.ship, gridCell.verOrHor));
 
-    updateTextToShip();
+    // refreshDomCellImage();
   });
 }
 
-function updateTextToShip() {
+function refreshDomCellImages() {
   loopYandX((y, x) => {
-    let domCell = domGrid.children().eq(y).children().eq(x);
-    domCell.text(grid[y][x].text);
+    let domCell = getDomCell(y, x);
+    domCell.empty();
+
+    let gridCell = grid[y][x];
+
+    if (gridCell.ship && gridCell.image) {
+      domCell.append(createShipImgElement(gridCell.ship, gridCell.verOrHor));
+    }
   });
 }
 
 /** DOM REPRESENTATION =================================== */
-let domGrid = $('<div>').addClass('grid');
+let $domGrid = $('<div>').addClass('grid');
 
 for (let y = 0; y < ROWS; y++) {
-  domGrid.append(createDomRow(y));
+  $domGrid.append(createDomRow(y));
 }
 
 function createDomRow(y) {
@@ -141,7 +161,7 @@ function createDomCell(y, x) {
   });
 
   cell.on('mouseleave', function() {
-    updateTextToShip();
+    refreshDomCellImages();
   });
 
   return cell;
@@ -166,20 +186,36 @@ function positionValid(y, x) {
 }
 
 function projectShip(y, x) {
-  let start = -Math.floor(selectedShip.length / 2);
-
-  let gridDomCell = getDomCellFromOrientation(y, x, 0, 0);
+  let gridDomCell = getDomCell(y, x);
   // gridDomCell.text(selectedShip.name);
-  gridDomCell.append(createShipImgElement());
+  gridDomCell.append(createShipImgElement(selectedShip, verOrHor));
 }
 
-function createShipImgElement() {
-  let img = $('<img>').attr('src', `/images/${selectedShip.name}.png`).addClass(selectedShip.class[verOrHor]);
+function createShipImgElement(ship, verOrHor) {
+  let img = $('<img>').attr('src', `/images/${ship.name}.png`).addClass(ship.class[verOrHor]);
   return img;
 }
+
+/** SET PIECES =========================================== */
+let playingPieces = $('.playing-pieces').children();
+for (let piece of playingPieces) {
+  $(piece).on('click', function() {
+    selectedShip = Object.entries(ships).find(([ ship, shipInfo ]) => {
+      return $(piece).hasClass(shipInfo.name);
+    })[1];
+  });
+}
+
+$('.rotate').on('click', function() {
+  if (verOrHor === 'ver') {
+    verOrHor = 'hor';
+  } else {
+    verOrHor = 'ver';
+  }
+});
 
 /** HTML INTERACTION ===================================== */
 $(document).ready(() => {
   let main = $('main');
-  main.append(domGrid);
+  main.prepend($domGrid);
 });

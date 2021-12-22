@@ -1,0 +1,70 @@
+html {
+  font-family: "Arvo", serif;
+}
+
+header {
+  font-family: "Black Ops One", cursive;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+header h1 {
+  font-size: 3em;
+}
+header img {
+  height: 200px;
+  width: 400px;
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+}
+
+.cell {
+  border: 1px solid #4d4d4d;
+  width: 50px;
+  height: 50px;
+  line-height: 50px;
+  text-align: center;
+}
+
+.carrier-h,
+.carrier-v,
+.battleship-h,
+.battleship-v,
+.cruiser-h,
+.cruiser-v,
+.submarine-h,
+.submarine-v,
+.destroyer-h,
+.destroyer-v {
+  position: absolute;
+  z-index: -1;
+  height: 50px;
+}
+
+.carrier-h,
+.carrier-v {
+  width: 250px;
+  transform: translateX(-125px);
+}
+
+.carrier-v {
+  transform: translateX(-125px) rotate(90deg);
+}
+
+.battleship-h,
+.battleship-v {
+  width: 200px;
+  transform: translateX(-125px);
+}
+
+.battleship-v {
+  transform: rotate(90deg) translate(-25px, 100px);
+}

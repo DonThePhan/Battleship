@@ -1,0 +1,74 @@
+$cell-dim: 50px;
+
+html {
+  font-family: 'Arvo', serif;
+}
+
+header {
+  font-family: 'Black Ops One', cursive;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  h1 {
+    font-size: 3em;
+  }
+
+  img {
+    height: 200px;
+    width: 400px;
+  }
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+}
+
+.cell {
+  border: 1px solid hsl(0, 0%, 30%);
+  width: $cell-dim;
+  height: $cell-dim;
+  line-height: $cell-dim;
+  text-align: center;
+}
+
+// ALL SHIPS
+.carrier-h,
+.carrier-v,
+.battleship-h,
+.battleship-v,
+.cruiser-h,
+.cruiser-v,
+.submarine-h,
+.submarine-v,
+.destroyer-h,
+.destroyer-v {
+  position: absolute;
+  z-index: -1;
+  height: $cell-dim;
+}
+
+// INDIVIDUALS
+.carrier-h,
+.carrier-v {
+  width: 5*$cell-dim;
+  transform: translateX(-2.5*$cell-dim);
+}
+.carrier-v {
+  transform: translateX(-2.5*$cell-dim) rotate(90deg);
+}
+
+.battleship-h,
+.battleship-v {
+  width: 4*$cell-dim;
+  transform: translateX(-2.5*$cell-dim);
+}
+.battleship-v {
+  transform: rotate(90deg) translate(-.5*$cell-dim, 2*$cell-dim);
+}

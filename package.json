@@ -1,0 +1,29 @@
+{
+  "name": "battle-ship",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "./node_modules/.bin/nodemon -L express_server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "sass-watch": "sass sass:public/styles --watch --poll --no-source-map"
+  },
+  
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DonThePhan/Battleship.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DonThePhan/Battleship/issues"
+  },
+  "homepage": "https://github.com/DonThePhan/Battleship#readme",
+  "dependencies": {
+    "body-parser": "^1.19.1",
+    "ejs": "^3.1.6",
+    "express": "^4.17.2",
+    "nodemon": "^2.0.15"
+  }
+}

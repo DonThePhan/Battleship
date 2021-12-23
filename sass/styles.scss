@@ -20,9 +20,19 @@ header {
   }
 }
 
+.fire {
+  position: absolute;
+  top: 0;
+  left: 10%;
+  z-index: 100;
+  height: 80%;
+  width: 80%;
+}
+
 main {
   display: flex;
   padding: 50px;
+  justify-content: space-around;
   .playing-pieces-container {
     display: flex;
     flex-direction: column;
@@ -62,6 +72,7 @@ main {
 }
 
 .cell {
+  position: relative;
   border: 1px solid hsl(0, 0%, 30%);
   width: $cell-dim;
   height: $cell-dim;
@@ -69,6 +80,13 @@ main {
   text-align: center;
   background-image: url('/images/water-slow.gif');
   background-size: 100% 100%;
+
+  &:hover {
+    border: 1px solid red;
+    background: url('/images/water-slow.gif') rgba(255, 0, 0, 0.4);
+    background-size: 100% 100%;
+    background-blend-mode: multiply;
+  }
 }
 
 // ALL SHIPS
@@ -82,10 +100,13 @@ main {
 .submarine-v,
 .destroyer-h,
 .destroyer-v {
+  left: 50%;
+  right: 50%;
   position: absolute;
+  z-index: 1;
   pointer-events: none;
-  // z-index: -1;
   height: $cell-dim;
+  overflow: visible;
 }
 
 // INDIVIDUALS

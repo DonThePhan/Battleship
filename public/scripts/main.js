@@ -3,6 +3,16 @@ const COLS = 10;
 let curRow;
 let curCol;
 
+let gameOn = true;
+let player1Turn = true;
+let gameMode = 'computer';
+
+let playerGrid;
+let $playerGrid;
+
+let pcGrid;
+let $pcGrid;
+
 const ships = {
   carrier: { name: 'carrier', length: 5, text: 'CA', class: { ver: 'carrier-v', hor: 'carrier-h' } },
   battleship: { name: 'battleship', length: 4, text: 'B', class: { ver: 'battleship-v', hor: 'battleship-h' } },
@@ -25,31 +35,30 @@ function loopYandX(callback) {
 }
 
 /** GRID REPRESENTATION ========================================================== */
-let grid = [];
-for (let y = 0; y < ROWS; y++) {
-  let row = [];
-  for (let x = 0; x < COLS; x++) {
-    row.push(createCell());
+
+function createGrid() {
+  let grid = [];
+  for (let y = 0; y < ROWS; y++) {
+    let row = [];
+    for (let x = 0; x < COLS; x++) {
+      row.push(createCell());
+    }
+    grid.push(row);
   }
-  grid.push(row);
+  return grid;
 }
+
 function createCell() {
   return {
     ship: undefined,
-    text: '',
     verOrHor: undefined,
-    image: false
+    image: false,
+    hit: false,
+    miss: false
   };
 }
 
-function assignShipToText() {
-  loopYandX((y, x) => {
-    let gridCell = grid[y][x];
-    gridCell.text = gridCell.ship;
-  });
-}
-
-function getCell(y, x, start = 0, cellNum = 0) {
+function getCell(grid, y, x, start = 0, cellNum = 0) {
   if (verOrHor === 'ver') {
     return grid[start + y + cellNum][x];
   } else {
@@ -57,22 +66,12 @@ function getCell(y, x, start = 0, cellNum = 0) {
   }
 }
 
-function getDomCell(y, x, start = 0, cellNum = 0) {
-  if (verOrHor === 'ver') {
-    // console.log('ver', y + start + cellNum, x);
-    return $domGrid.children().eq(y + start + cellNum).children().eq(x);
-  } else {
-    // console.log('hor', y, x + start + cellNum);
-    return $domGrid.children().eq(y).children().eq(x + start + cellNum);
-  }
-}
-
-function dropShipIntoGrid(y, x) {
-  removeInstancesOfShip();
-  let start = -Math.floor(selectedShip.length / 2);
-  for (let cellNum = 0; cellNum < selectedShip.length; cellNum++) {
-    let cell = getCell(y, x, start, cellNum);
-    cell.ship = selectedShip;
+function dropShipIntoGrid(grid, $grid, y, x, ship) {
+  removeInstancesOfShip(grid, ship);
+  let start = -Math.floor(ship.length / 2);
+  for (let cellNum = 0; cellNum < ship.length; cellNum++) {
+    let cell = getCell(grid, y, x, start, cellNum);
+    cell.ship = ship;
     cell.verOrHor = verOrHor;
 
     if (start + cellNum === 0) {
@@ -80,14 +79,14 @@ function dropShipIntoGrid(y, x) {
     }
   }
 
-  refreshDomCellImages();
+  refreshDomCellImages(grid, $grid);
 }
 
-function removeInstancesOfShip() {
+function removeInstancesOfShip(grid, ship) {
   loopYandX((y, x) => {
     let gridCell = grid[y][x];
     if (gridCell.ship) {
-      if (gridCell.ship.name === selectedShip.name) {
+      if (gridCell.ship.name === ship.name) {
         gridCell.ship = undefined;
         gridCell.image = false;
       }
@@ -95,44 +94,31 @@ function removeInstancesOfShip() {
   });
 }
 
-/** GRID - DOM INTERACTION ============================== */
+/** GRID-DOM INTERACTION ============================== */
 
-function gridToDom() {
+function refreshDomCellImages(grid, $grid) {
   loopYandX((y, x) => {
-    let gridCell = grid[y][x];
-    let gridDomCell = $domGrid.children().eq(y).children().eq(x);
-    gridDomCell.empty();
-
-    gridDomCell.append(createShipImgElement(gridCell.ship, gridCell.verOrHor));
-
-    // refreshDomCellImage();
-  });
-}
-
-function refreshDomCellImages() {
-  loopYandX((y, x) => {
-    let domCell = getDomCell(y, x);
+    let cell = grid[y][x];
+    let domCell = getDomCell($grid, y, x);
     domCell.empty();
-
-    let gridCell = grid[y][x];
-
-    if (gridCell.ship && gridCell.image) {
-      domCell.append(createShipImgElement(gridCell.ship, gridCell.verOrHor));
+    if (cell.ship && cell.image) {
+      domCell.append(createShipImgElement(cell.ship, cell.verOrHor));
     }
   });
 }
 
 /** DOM REPRESENTATION =================================== */
-let $domGrid = $('<div>').addClass('grid');
-
-for (let y = 0; y < ROWS; y++) {
-  $domGrid.append(createDomRow(y));
+function createDomGrid(grid) {
+  let $grid = $('<div>').addClass('grid');
+  for (let y = 0; y < ROWS; y++) {
+    $grid.append(createDomRow(grid, $grid, y));
+  }
+  return $grid;
 }
-
-function createDomRow(y) {
+function createDomRow(grid, $grid, y) {
   let row = $('<div>').addClass('row');
   for (let x = 0; x < COLS; x++) {
-    row.append(createDomCell(y, x));
+    row.append(createDomCell(grid, $grid, y, x));
   }
   row.on('mouseenter', function() {
     curRow = $(this).index();
@@ -140,7 +126,7 @@ function createDomRow(y) {
   return row;
 }
 
-function createDomCell(y, x) {
+function createDomCell(grid, $grid, y, x) {
   let cell = $('<div>').addClass('cell');
   cell.attr('data-row', y);
   cell.attr('data-col', x);
@@ -148,28 +134,36 @@ function createDomCell(y, x) {
   cell.on('click', function() {
     let y = Number($(this).attr('data-row'));
     let x = Number($(this).attr('data-col'));
-    dropShipIntoGrid(y, x);
+    dropShipIntoGrid(grid, $grid, y, x, selectedShip);
   });
 
   cell.on('mouseenter', function() {
     let y = Number($(this).attr('data-row'));
     let x = Number($(this).attr('data-col'));
 
-    if (positionValid(y, x)) {
-      projectShip(y, x);
+    if (positionValid($grid, y, x, selectedShip)) {
+      projectShip($grid, y, x, selectedShip);
     }
   });
 
   cell.on('mouseleave', function() {
-    refreshDomCellImages();
+    refreshDomCellImages(grid, $grid);
   });
 
   return cell;
 }
 
-function positionValid(y, x) {
-  let start = -Math.floor(selectedShip.length / 2);
-  for (let l = 0; l < selectedShip.length; l++) {
+function getDomCell($grid, y, x, start = 0, cellNum = 0) {
+  if (verOrHor === 'ver') {
+    return $grid.children().eq(y + start + cellNum).children().eq(x);
+  } else {
+    return $grid.children().eq(y).children().eq(x + start + cellNum);
+  }
+}
+
+function positionValid(y, x, ship) {
+  let start = -Math.floor(ship.length / 2);
+  for (let l = 0; l < ship.length; l++) {
     if (verOrHor === 'hor') {
       let position = start + x + l;
       if (position < 0 || position >= ROWS) {
@@ -185,10 +179,9 @@ function positionValid(y, x) {
   return true;
 }
 
-function projectShip(y, x) {
-  let gridDomCell = getDomCell(y, x);
-  // gridDomCell.text(selectedShip.name);
-  gridDomCell.append(createShipImgElement(selectedShip, verOrHor));
+function projectShip($grid, y, x, ship) {
+  let gridDomCell = getDomCell($grid, y, x);
+  gridDomCell.append(createShipImgElement(ship, verOrHor));
 }
 
 function createShipImgElement(ship, verOrHor) {
@@ -196,7 +189,11 @@ function createShipImgElement(ship, verOrHor) {
   return img;
 }
 
-/** SET PIECES =========================================== */
+/** PHASE 1: LAY DOWN PIECES ============================= */
+// Create GRIDs
+playerGrid = createGrid();
+$playerGrid = createDomGrid(playerGrid);
+
 let playingPieces = $('.playing-pieces').children();
 for (let piece of playingPieces) {
   $(piece).on('click', function() {
@@ -214,8 +211,72 @@ $('.rotate').on('click', function() {
   }
 });
 
+$('.start').on('click', function() {
+  $('.playing-pieces-container').hide();
+
+  startGameMode();
+});
+
+/** PHASE 2: GAME MODE =================================== */
+
+function startGameMode() {
+  if (gameMode === 'computer') {
+    initiateComputerMode();
+  }
+}
+
+function initiateComputerMode() {
+  pcGrid = createGrid();
+  $pcGrid = createDomGrid(pcGrid);
+
+  // TODO Un-hardcode ships
+  dropShipIntoGrid(pcGrid, $pcGrid, 0, 2, ships.carrier);
+  dropShipIntoGrid(pcGrid, $pcGrid, 1, 2, ships.battleship);
+  dropShipIntoGrid(pcGrid, $pcGrid, 2, 2, ships.cruiser);
+  dropShipIntoGrid(pcGrid, $pcGrid, 3, 2, ships.submarine);
+  dropShipIntoGrid(pcGrid, $pcGrid, 4, 2, ships.destroyer);
+
+  $('main').append($pcGrid);
+  gameStart();
+}
+
+/** PHASE 3: GAME PLAY =================================== */
+
+function createImg(fileName, _class) {
+  let $fire = $('<img>').attr('src', `/images/${fileName}`).addClass(_class);
+  return $fire;
+}
+
+function clearCellsEvents() {
+  let cells = $('.cell');
+  for (cell of cells) {
+    $(cell).off();
+  }
+}
+
+function playerActionPending() {
+  clearCellsEvents();
+  let cells = $('.cell');
+  for (cell of cells) {
+    $(cell).on('click', function() {
+      // $(this).append(createImg('fire.gif', 'fire'));
+      $(this).append(createImg('explosion1.gif', /* TODO create explosion class*/ 'fire'));
+
+      player1Turn = !player1Turn;
+      gameStart();
+    });
+  }
+}
+
+function gameStart() {
+  if (player1Turn) {
+    playerActionPending();
+  } else {
+  }
+}
+
 /** HTML INTERACTION ===================================== */
 $(document).ready(() => {
   let main = $('main');
-  main.prepend($domGrid);
+  main.prepend($playerGrid);
 });
